@@ -1,0 +1,7 @@
+.env
+stack.env
+data/
+*.db
+*.db-shm
+*.db-wal
+.DS_Store

@@ -1,0 +1,31 @@
+name: mneme-server
+
+services:
+  mneme-server:
+    image: ${MNEME_IMAGE:-lainsmain/mneme-server:latest}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      MNEME_DATA_DIR: /data
+      MNEME_LISTEN: :8080
+    volumes:
+      - mneme-data:/data
+    ports:
+      - "${MNEME_BIND_ADDRESS:-127.0.0.1}:${MNEME_LOCAL_PORT:-8181}:8080"
+    healthcheck:
+      test: ["CMD", "/mneme", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 20s
+
+volumes:
+  mneme-data:
+    name: ${MNEME_VOLUME:-mneme-server-data}
+
+networks:
+  default:
+    name: ${MNEME_NETWORK:-mneme-backup}
