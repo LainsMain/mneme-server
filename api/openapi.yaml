@@ -1,0 +1,140 @@
+openapi: 3.1.0
+info:
+  title: Mneme Backup API
+  version: 0.1.7
+  description: Opaque object API for end-to-end encrypted diary backups.
+servers:
+  - url: https://mneme.example.com/v1
+security:
+  - bearerToken: []
+paths:
+  /health:
+    get:
+      security: []
+      responses:
+        "200":
+          description: Service is healthy.
+  /vault/status:
+    get:
+      responses:
+        "200":
+          description: Server capabilities, API version, and release version used for compatibility checks.
+  /objects/{hash}:
+    parameters:
+      - name: hash
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+    put:
+      description: Store an opaque encrypted object. Its SHA-256 must match `hash`.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream: {}
+      responses:
+        "201":
+          description: Object stored or already present.
+    get:
+      responses:
+        "200":
+          description: The opaque encrypted object.
+          content:
+            application/octet-stream: {}
+  /manifests:
+    get:
+      responses:
+        "200":
+          description: Current encrypted manifest pointers for all devices.
+  /manifests/{deviceId}:
+    parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      parameters:
+        - name: X-Mneme-Revision
+          in: header
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/octet-stream: {}
+      responses:
+        "201":
+          description: Encrypted device manifest stored.
+        "409":
+          description: A newer manifest already exists.
+    get:
+      responses:
+        "200":
+          description: Current opaque encrypted manifest for this device.
+          content:
+            application/octet-stream: {}
+  /manifests/{deviceId}/history:
+    parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 365, default: 30 }
+      responses:
+        "200":
+          description: Newest retained encrypted manifest pointers for this device.
+  /manifests/{deviceId}/history/{revision}:
+    parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: revision
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      responses:
+        "200":
+          description: Opaque encrypted manifest at the requested revision.
+          content:
+            application/octet-stream: {}
+  /manifests/{deviceId}/history/{revision}/references:
+    parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: revision
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    put:
+      description: Store the opaque encrypted-object hashes referenced by this manifest.
+      responses:
+        "200":
+          description: Reference index stored.
+  /storage:
+    get:
+      responses:
+        "200":
+          description: Ciphertext object counts, bytes, and retained manifest counts.
+  /storage/gc:
+    post:
+      description: Prune old histories and proven-unreferenced ciphertext after the safety grace period.
+      responses:
+        "200":
+          description: Cleanup result and updated storage totals.
+components:
+  securitySchemes:
+    bearerToken:
+      type: http
+      scheme: bearer
